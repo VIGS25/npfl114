@@ -15,6 +15,9 @@ class Network:
                                                                        intra_op_parallelism_threads=threads))
 
     def construct(self, args):
+        
+        activations =  {"none": None, "sigmoid": tf.nn.sigmoid, "relu": tf.nn.relu, "tanh": tf.nn.tanh}
+
         with self.session.graph.as_default():
             # Inputs
             self.images = tf.placeholder(tf.float32, [None, self.HEIGHT, self.WIDTH, 1], name="images")
@@ -25,6 +28,14 @@ class Network:
             # TODO: add args.layers hidden layers with activations given by
             # args.activation and store results in hidden_layer. Possible
             # activations are none, relu, tanh and sigmoid.
+
+            hidden_layer = flattened_images
+
+            for i in range(args.layers):
+                activation = activations[args.activation]
+                hidden_layer = tf.layers.dense(hidden_layer, units=args.hidden_layer, activation=activation,
+                                              name='hidden_layer_{}'.format(i))
+
             output_layer = tf.layers.dense(hidden_layer, self.LABELS, activation=None, name="output_layer")
             self.predictions = tf.argmax(output_layer, axis=1)
 
@@ -60,6 +71,10 @@ class Network:
     def evaluate(self, dataset, images, labels):
         self.session.run(self.summaries[dataset], {self.images: images, self.labels: labels})
 
+        if dataset == "test":
+            predictions = self.session.run(self.predictions, {self.images: images})
+            accuracy = np.mean(predictions == labels)
+            print("{:.2f}".format(accuracy))
 
 if __name__ == "__main__":
     import argparse
